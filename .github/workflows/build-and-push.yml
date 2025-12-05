@@ -66,10 +66,12 @@ jobs:
           tags: |
             ${{ steps.meta.outputs.FULL_IMAGE }}
             registry.cn-shanghai.aliyuncs.com/zywdockers/images:jmp-core-latest
-          cache-from: type=registry,ref=registry.cn-shanghai.aliyuncs.com/zywdockers/images:jmp-core-buildcache
-          cache-to: type=registry,ref=registry.cn-shanghai.aliyuncs.com/zywdockers/images:jmp-core-buildcache,mode=max
+          # 阿里云不支持 BuildKit cache，改用 inline cache
+          cache-from: type=registry,ref=registry.cn-shanghai.aliyuncs.com/zywdockers/images:jmp-core-latest
+          cache-to: type=inline
           build-args: |
             VERSION=${{ github.ref_name }}
+            BUILDKIT_INLINE_CACHE=1
 
       - name: Build summary
         run: |
