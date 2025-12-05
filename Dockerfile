@@ -58,6 +58,9 @@ COPY --from=stage-build /opt/jumpserver/apps/libs/ansible/ansible.cfg /etc/ansib
 
 WORKDIR /opt/jumpserver
 
+# 确保 entrypoint.sh 和 jms 有执行权限
+RUN chmod +x /opt/jumpserver/entrypoint.sh /opt/jumpserver/jms
+
 VOLUME /opt/jumpserver/data
 
 ENTRYPOINT ["./entrypoint.sh"]
