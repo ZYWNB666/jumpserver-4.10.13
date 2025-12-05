@@ -39,20 +39,38 @@ jobs:
       - name: Generate image tag
         id: meta
         run: |
-          # 生成时间戳标签: jmp-core-202512052106
-          TIMESTAMP=$(date +'%Y%m%d%H%M')
-          IMAGE_TAG="jmp-core-${TIMESTAMP}"
+          # 基础版本号（基于 JumpServer 版本）
+          BASE_VERSION="v4.10.13"
           
-          # 如果有自定义后缀，添加到标签
+          # 生成时间戳: 202512052106
+          TIMESTAMP=$(date +'%Y%m%d%H%M')
+          
+          # 生成短 commit hash
+          COMMIT_SHORT=$(git rev-parse --short HEAD)
+          
+          # 版本号策略：
+          # 1. 如果是 tag 推送，使用 tag 名称
+          # 2. 否则使用: v4.10.13-202512052106-abc1234
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            # 提取 tag 名称（去掉 refs/tags/ 前缀）
+            VERSION="${{ github.ref_name }}"
+          else
+            # 组合版本号：基础版本-时间戳-commit
+            VERSION="${BASE_VERSION}-${TIMESTAMP}-${COMMIT_SHORT}"
+          fi
+          
+          # 如果有自定义后缀，添加到版本号
           if [ -n "${{ inputs.tag_suffix }}" ]; then
-            IMAGE_TAG="${IMAGE_TAG}-${{ inputs.tag_suffix }}"
+            VERSION="${VERSION}-${{ inputs.tag_suffix }}"
           fi
           
           # 设置完整镜像名称
-          FULL_IMAGE="registry.cn-shanghai.aliyuncs.com/zywdockers/images:${IMAGE_TAG}"
+          FULL_IMAGE="registry.cn-shanghai.aliyuncs.com/zywdockers/jmp-core:${VERSION}"
+          LATEST_IMAGE="registry.cn-shanghai.aliyuncs.com/zywdockers/jmp-core:latest"
           
-          echo "IMAGE_TAG=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
           echo "FULL_IMAGE=${FULL_IMAGE}" >> $GITHUB_OUTPUT
+          echo "LATEST_IMAGE=${LATEST_IMAGE}" >> $GITHUB_OUTPUT
           
           echo "::notice::Building image: ${FULL_IMAGE}"
 
@@ -65,24 +83,30 @@ jobs:
           push: true
           tags: |
             ${{ steps.meta.outputs.FULL_IMAGE }}
-            registry.cn-shanghai.aliyuncs.com/zywdockers/images:jmp-core-latest
+            ${{ steps.meta.outputs.LATEST_IMAGE }}
           # 阿里云不支持 BuildKit cache，改用 inline cache
-          cache-from: type=registry,ref=registry.cn-shanghai.aliyuncs.com/zywdockers/images:jmp-core-latest
+          cache-from: type=registry,ref=${{ steps.meta.outputs.LATEST_IMAGE }}
           cache-to: type=inline
           build-args: |
-            VERSION=${{ github.ref_name }}
+            VERSION=${{ steps.meta.outputs.VERSION }}
             BUILDKIT_INLINE_CACHE=1
 
       - name: Build summary
         run: |
           echo "## Build Success! 🚀" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** \`${{ steps.meta.outputs.VERSION }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Image:** \`${{ steps.meta.outputs.FULL_IMAGE }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Latest:** \`registry.cn-shanghai.aliyuncs.com/zywdockers/images:jmp-core-latest\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Latest:** \`${{ steps.meta.outputs.LATEST_IMAGE }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Pull Command" >> $GITHUB_STEP_SUMMARY
+          echo "### Pull Commands" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "# Pull specific version" >> $GITHUB_STEP_SUMMARY
           echo "docker pull ${{ steps.meta.outputs.FULL_IMAGE }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "# Pull latest" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ${{ steps.meta.outputs.LATEST_IMAGE }}" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
 

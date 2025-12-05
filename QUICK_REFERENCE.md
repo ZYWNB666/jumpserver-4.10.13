@@ -55,10 +55,13 @@ docker login registry.cn-shanghai.aliyuncs.com
 ### 拉取镜像
 ```bash
 # 拉取最新版本
-docker pull registry.cn-shanghai.aliyuncs.com/zywdockers/images:jmp-core-latest
+docker pull registry.cn-shanghai.aliyuncs.com/zywdockers/jmp-core:latest
 
-# 拉取指定版本
-docker pull registry.cn-shanghai.aliyuncs.com/zywdockers/images:jmp-core-202512052106
+# 拉取正式版本（推荐生产环境）
+docker pull registry.cn-shanghai.aliyuncs.com/zywdockers/jmp-core:v4.10.13
+
+# 拉取开发版本
+docker pull registry.cn-shanghai.aliyuncs.com/zywdockers/jmp-core:v4.10.13-202512052106-a1b2c3d
 ```
 
 ### 运行容器
@@ -77,7 +80,7 @@ docker run -d \
   -e REDIS_PORT=6379 \
   -e REDIS_PASSWORD=your-redis-password \
   -v /opt/jumpserver/data:/opt/jumpserver/data \
-  registry.cn-shanghai.aliyuncs.com/zywdockers/images:jmp-core-latest
+  registry.cn-shanghai.aliyuncs.com/zywdockers/jmp-core:v4.10.13
 ```
 
 ### 查看容器日志
@@ -119,10 +122,10 @@ docker login registry.cn-shanghai.aliyuncs.com
 
 # 标记镜像
 docker tag jumpserver-local:test \
-  registry.cn-shanghai.aliyuncs.com/zywdockers/images:jmp-core-test
+  registry.cn-shanghai.aliyuncs.com/zywdockers/jmp-core:test
 
 # 推送
-docker push registry.cn-shanghai.aliyuncs.com/zywdockers/images:jmp-core-test
+docker push registry.cn-shanghai.aliyuncs.com/zywdockers/jmp-core:test
 ```
 
 ## 镜像管理
@@ -135,10 +138,10 @@ docker images | grep jumpserver
 ### 删除本地镜像
 ```bash
 # 删除指定镜像
-docker rmi registry.cn-shanghai.aliyuncs.com/zywdockers/images:jmp-core-202512052106
+docker rmi registry.cn-shanghai.aliyuncs.com/zywdockers/jmp-core:v4.10.13
 
 # 删除所有 jumpserver 镜像
-docker rmi $(docker images -q "*/images:jmp-core-*")
+docker rmi $(docker images -q "*/jmp-core:*")
 ```
 
 ### 清理未使用的镜像
@@ -207,14 +210,14 @@ git log --oneline --graph --decorate
 2. 进入 个人实例 → 仓库管理 → 镜像仓库
 3. 创建仓库：
    - 命名空间: zywdockers
-   - 仓库名: images
+   - 仓库名: jmp-core
    - 仓库类型: 私有
 ```
 
 ### 查看镜像列表
 ```bash
 # 使用阿里云 CLI (需要安装)
-aliyun cr GetRepoTags --RepoNamespace=zywdockers --RepoName=images
+aliyun cr GetRepoTags --RepoNamespace=zywdockers --RepoName=jmp-core
 ```
 
 ## 故障排查
@@ -238,7 +241,7 @@ docker build --progress=plain -t test .
 docker login registry.cn-shanghai.aliyuncs.com
 
 # 测试推送
-docker push registry.cn-shanghai.aliyuncs.com/zywdockers/images:test
+docker push registry.cn-shanghai.aliyuncs.com/zywdockers/jmp-core:test
 ```
 
 ### 查看容器内进程
