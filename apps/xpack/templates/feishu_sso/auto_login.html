@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>飞书登录中...</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .login-container {
+            text-align: center;
+            background: white;
+            padding: 60px 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            width: 90%;
+        }
+        
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            color: white;
+        }
+        
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        
+        .status-text {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            margin: 0 auto;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error-message {
+            display: none;
+            color: #e74c3c;
+            margin-top: 20px;
+            padding: 15px;
+            background: #fee;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .retry-btn {
+            display: none;
+            margin-top: 20px;
+            padding: 12px 30px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+        
+        .retry-btn:hover {
+            background: #5568d3;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">🚀</div>
+        <h2>飞书登录</h2>
+        <p class="status-text" id="statusText">正在通过飞书登录...</p>
+        <div class="spinner" id="spinner"></div>
+        <div class="error-message" id="errorMessage"></div>
+        <button class="retry-btn" id="retryBtn" onclick="retry()">重试</button>
+    </div>
+    
+    <!-- 飞书 H5 JS-SDK -->
+    <script src="https://lf1-cdn-tos.bytegoofy.com/goofy/lark/op/h5-js-sdk-1.5.16.js"></script>
+    
+    <script>
+        // 检测是否在飞书环境中
+        const isInFeishu = /lark/i.test(navigator.userAgent);
+        
+        // 显示错误信息
+        function showError(message) {
+            document.getElementById('spinner').style.display = 'none';
+            document.getElementById('statusText').textContent = '登录失败';
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorMessage').style.display = 'block';
+            document.getElementById('retryBtn').style.display = 'inline-block';
+        }
+        
+        // 重试登录
+        function retry() {
+            window.location.reload();
+        }
+        
+        // 自动登录逻辑
+        function autoLogin() {
+            if (isInFeishu && window.h5sdk) {
+                // 在飞书环境中，使用JS-SDK
+                initFeishuSDK();
+            } else {
+                // 不在飞书环境，直接跳转到OAuth登录
+                redirectToOAuth();
+            }
+        }
+        
+        // 初始化飞书JS-SDK
+        function initFeishuSDK() {
+            // 获取JS-SDK配置
+            const currentUrl = encodeURIComponent(window.location.href);
+            
+            fetch('/api/v1/xpack/feishu-sso/jssdk/config/?url=' + currentUrl)
+                .then(response => response.json())
+                .then(config => {
+                    if (config.error) {
+                        throw new Error(config.error);
+                    }
+                    
+                    // 配置JS-SDK
+                    h5sdk.config({
+                        appId: config.appId,
+                        timestamp: config.timestamp,
+                        nonceStr: config.nonceStr,
+                        signature: config.signature,
+                        jsApiList: ['biz.user.get'],
+                        onSuccess: function() {
+                            console.log('JS-SDK配置成功');
+                            // 配置成功后，直接跳转到OAuth登录
+                            redirectToOAuth();
+                        },
+                        onFail: function(err) {
+                            console.error('JS-SDK配置失败', err);
+                            // 配置失败，降级到OAuth登录
+                            redirectToOAuth();
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('获取JS-SDK配置失败', error);
+                    // 获取配置失败，降级到OAuth登录
+                    redirectToOAuth();
+                });
+        }
+        
+        // 跳转到OAuth登录
+        function redirectToOAuth() {
+            // 获取目标页面
+            const urlParams = new URLSearchParams(window.location.search);
+            const nextUrl = urlParams.get('next') || '/';
+            
+            // 跳转到飞书SSO登录入口
+            window.location.href = '/api/v1/xpack/feishu-sso/login/?next=' + encodeURIComponent(nextUrl);
+        }
+        
+        // 页面加载完成后自动执行
+        window.onload = function() {
+            setTimeout(autoLogin, 500);
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,79 @@
+# 飞书SSO插件配置示例
+# 
+# 使用说明：
+# 1. 复制相关配置到JumpServer主配置文件 config.yml
+# 2. 根据实际情况修改配置值
+# 3. 重启JumpServer服务使配置生效
+
+# ============================================
+# 飞书SSO基础配置（必需）
+# ============================================
+
+# 是否启用飞书SSO
+FEISHU_SSO_ENABLED: true
+
+# 飞书应用的App ID（在飞书开放平台获取）
+FEISHU_SSO_APP_ID: 'cli_xxxxxxxxxxxxx'
+
+# 飞书应用的App Secret（在飞书开放平台获取）
+FEISHU_SSO_APP_SECRET: 'xxxxxxxxxxxxxxxxxxxxx'
+
+
+# ============================================
+# 飞书SSO高级配置（可选）
+# ============================================
+
+# 是否自动创建用户
+# - true: 首次登录时自动创建JumpServer账号
+# - false: 只允许已存在的用户登录
+FEISHU_SSO_AUTO_CREATE_USER: true
+
+# 是否每次登录时更新用户信息
+# - true: 每次登录都同步飞书的用户信息（姓名、邮箱、手机号）
+# - false: 只在创建用户时设置一次
+FEISHU_SSO_ALWAYS_UPDATE_USER: true
+
+# 是否通过邮箱匹配已存在用户
+# - true: 如果用户未绑定飞书ID，尝试通过邮箱查找并自动绑定
+# - false: 只通过飞书ID查找用户
+FEISHU_SSO_MATCH_BY_EMAIL: false
+
+# 使用飞书哪个字段作为JumpServer用户名
+# 可选值：
+# - 'user_id': 飞书用户ID（推荐，唯一且不会改变）
+# - 'email': 邮箱前缀
+# - 'mobile': 手机号
+FEISHU_SSO_USERNAME_FIELD: 'mobile'
+
+# 新用户默认加入的组织ID列表
+# 如果不设置，将加入默认组织
+FEISHU_SSO_DEFAULT_ORG_IDS:
+  - '00000000-0000-0000-0000-000000000002'
+
+
+# ============================================
+# 配置示例场景
+# ============================================
+
+# 场景1：仅允许已存在用户登录
+# FEISHU_SSO_ENABLED: true
+# FEISHU_SSO_APP_ID: 'cli_xxxxxxxxxxxxx'
+# FEISHU_SSO_APP_SECRET: 'xxxxxxxxxxxxxxxxxxxxx'
+# FEISHU_SSO_AUTO_CREATE_USER: false
+# FEISHU_SSO_MATCH_BY_EMAIL: true
+
+# 场景2：自动创建用户并同步信息
+# FEISHU_SSO_ENABLED: true
+# FEISHU_SSO_APP_ID: 'cli_xxxxxxxxxxxxx'
+# FEISHU_SSO_APP_SECRET: 'xxxxxxxxxxxxxxxxxxxxx'
+# FEISHU_SSO_AUTO_CREATE_USER: true
+# FEISHU_SSO_ALWAYS_UPDATE_USER: true
+# FEISHU_SSO_USERNAME_FIELD: 'user_id'
+
+# 场景3：通过邮箱关联已有账号
+# FEISHU_SSO_ENABLED: true
+# FEISHU_SSO_APP_ID: 'cli_xxxxxxxxxxxxx'
+# FEISHU_SSO_APP_SECRET: 'xxxxxxxxxxxxxxxxxxxxx'
+# FEISHU_SSO_AUTO_CREATE_USER: false
+# FEISHU_SSO_MATCH_BY_EMAIL: true
+# FEISHU_SSO_ALWAYS_UPDATE_USER: true

@@ -470,6 +470,16 @@ class Config(dict):
         },
         'FEISHU_ORG_IDS': [DEFAULT_ID],
 
+        # 飞书SSO (XPack插件)
+        'FEISHU_SSO_ENABLED': False,
+        'FEISHU_SSO_APP_ID': '',
+        'FEISHU_SSO_APP_SECRET': '',
+        'FEISHU_SSO_AUTO_CREATE_USER': False,
+        'FEISHU_SSO_ALWAYS_UPDATE_USER': True,
+        'FEISHU_SSO_MATCH_BY_EMAIL': False,
+        'FEISHU_SSO_USERNAME_FIELD': 'user_id',
+        'FEISHU_SSO_DEFAULT_ORG_IDS': [DEFAULT_ID],
+
         # Lark
         'AUTH_LARK': False,
         'LARK_APP_ID': '',
