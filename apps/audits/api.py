@@ -22,6 +22,7 @@ from common.permissions import IsServiceAccount
 from common.plugins.es import QuerySet as ESQuerySet
 from common.sessions.cache import user_session_manager
 from common.storage.ftp_file import FTPFileStorageHandler
+from common.storage.base import get_multi_object_storage
 from common.utils import is_uuid, get_logger, lazyproperty
 from ops.const import Types
 from ops.models import Job
@@ -104,17 +105,114 @@ class FTPLogViewSet(OrgModelViewSet):
     http_method_names = ['post', 'get', 'head', 'options', 'patch']
     rbac_perms = {
         'download': 'audits.view_ftplog',
+        'presigned_url': 'audits.view_ftplog',
     }
 
     def get_storage(self):
         return FTPFileStorageHandler(self.get_object())
+
+    def _get_object_storage_presigned_url(self, ftp_log, expires=3600):
+        """
+        从配置的对象存储生成预签名URL
+        支持 S3/OSS/OBS/MinIO 等兼容 S3 的对象存储
+        
+        文件下载时，用户将直接从对象存储下载，绕过JumpServer服务器
+        这样可以避免阿里云等云服务商的出流量费用
+        """
+        from common.storage.jms_storage.s3 import S3Storage
+        from common.storage.jms_storage.oss import OSSStorage
+        from common.storage.jms_storage.obs import OBSStorage
+        
+        storage = get_multi_object_storage()
+        if not storage:
+            logger.debug("No external object storage configured")
+            return None
+        
+        # 获取第一个可用的存储实例
+        storage_instance = None
+        if hasattr(storage, 'storage_list') and storage.storage_list:
+            storage_instance = storage.storage_list[0]
+        
+        if not storage_instance:
+            logger.debug("No available storage instance found")
+            return None
+        
+        filepath = ftp_log.filepath
+        
+        # 先检查文件是否存在于对象存储中
+        try:
+            if not storage_instance.exists(filepath):
+                logger.debug(f"File {filepath} not found in object storage")
+                return None
+        except Exception as e:
+            logger.debug(f"Failed to check file existence: {e}")
+            return None
+        
+        try:
+            # S3/MinIO 兼容存储 - 使用已有的 generate_presigned_url 方法
+            if isinstance(storage_instance, S3Storage):
+                presigned_url, err = storage_instance.generate_presigned_url(filepath, expire=expires)
+                if presigned_url and presigned_url is not False:
+                    logger.info(f"Generated S3/MinIO presigned URL for {filepath}")
+                    return presigned_url
+                if err:
+                    logger.warning(f"S3 presigned URL generation error: {err}")
+            
+            # 阿里云 OSS - 使用 oss2.Bucket.sign_url 方法
+            elif isinstance(storage_instance, OSSStorage):
+                if hasattr(storage_instance, 'client') and storage_instance.client:
+                    presigned_url = storage_instance.client.sign_url('GET', filepath, expires)
+                    logger.info(f"Generated OSS presigned URL for {filepath}")
+                    return presigned_url
+            
+            # 华为云 OBS
+            elif isinstance(storage_instance, OBSStorage):
+                if hasattr(storage_instance, 'obsClient') and storage_instance.obsClient:
+                    resp = storage_instance.obsClient.createSignedUrl(
+                        method='GET',
+                        bucketName=storage_instance.bucket,
+                        objectKey=filepath,
+                        expires=expires
+                    )
+                    if hasattr(resp, 'signedUrl'):
+                        logger.info(f"Generated OBS presigned URL for {filepath}")
+                        return resp.signedUrl
+        
+        except Exception as e:
+            logger.warning(f"Failed to generate presigned URL: {e}")
+        
+        return None
 
     @action(
         methods=[GET], detail=True, permission_classes=[RBACPermission, ],
         url_path='file/download'
     )
     def download(self, request, *args, **kwargs):
+        """
+        文件下载接口 - 优先使用对象存储预签名URL
+        如果配置了对象存储，将重定向到预签名URL，用户直接从对象存储下载
+        这样可以避免JumpServer服务器的流量费用
+        """
+        from django.http import HttpResponseRedirect
+        
         ftp_log = self.get_object()
+        
+        # 尝试生成对象存储预签名URL
+        presigned_url = self._get_object_storage_presigned_url(ftp_log, expires=3600)
+        
+        if presigned_url:
+            # 记录下载操作
+            record_operate_log_and_activity_log(
+                [ftp_log.id], ActionChoices.download, '', self.model,
+                resource_display=f'{ftp_log.asset}: {ftp_log.filename}',
+            )
+            
+            # 重定向到对象存储预签名URL，绕过JumpServer流量
+            logger.info(f"Redirecting download to object storage for {ftp_log.filename}")
+            return HttpResponseRedirect(presigned_url)
+        
+        # 回退到原有逻辑：从本地存储下载
+        logger.info(f"Using local storage download for {ftp_log.filename}")
         ftp_storage = self.get_storage()
         local_path, url = ftp_storage.get_file_path_url()
         if local_path is None:
@@ -133,8 +231,103 @@ class FTPLogViewSet(OrgModelViewSet):
         )
         return response
 
+    @action(
+        methods=[GET], detail=True, permission_classes=[IsServiceAccount, ],
+        url_path='presigned-url'
+    )
+    def presigned_url(self, request, *args, **kwargs):
+        """
+        获取预签名URL接口
+        用于koko/lion等组件直接获取上传/下载URL，实现直传对象存储
+        
+        参数:
+            action: 'upload' 或 'download' (默认: download)
+            expires: URL有效期秒数 (默认: 3600)
+        
+        使用场景:
+            - koko/lion 获取上传URL后，直接将文件上传到对象存储
+            - koko/lion 获取下载URL后，直接从对象存储下载文件到目标服务器
+            - 这样可以完全绕过JumpServer服务器，避免云服务商流量费用
+        """
+        from common.storage.jms_storage.s3 import S3Storage
+        from common.storage.jms_storage.oss import OSSStorage
+        from common.storage.jms_storage.obs import OBSStorage
+        
+        ftp_log = self.get_object()
+        url_action = request.query_params.get('action', 'download')
+        expires = int(request.query_params.get('expires', 3600))
+        
+        storage = get_multi_object_storage()
+        if not storage:
+            return Response({'error': 'No external storage configured'}, status=400)
+        
+        storage_instance = None
+        if hasattr(storage, 'storage_list') and storage.storage_list:
+            storage_instance = storage.storage_list[0]
+        
+        if not storage_instance:
+            return Response({'error': 'No available storage instance'}, status=400)
+        
+        filepath = ftp_log.filepath
+        presigned_url = None
+        
+        try:
+            # S3/MinIO 兼容存储
+            if isinstance(storage_instance, S3Storage):
+                if url_action == 'upload':
+                    presigned_url = storage_instance.client.generate_presigned_url(
+                        'put_object',
+                        Params={
+                            'Bucket': storage_instance.bucket,
+                            'Key': filepath
+                        },
+                        ExpiresIn=expires
+                    )
+                else:  # download
+                    url, err = storage_instance.generate_presigned_url(filepath, expire=expires)
+                    if url and url is not False:
+                        presigned_url = url
+            
+            # 阿里云 OSS
+            elif isinstance(storage_instance, OSSStorage):
+                if hasattr(storage_instance, 'client') and storage_instance.client:
+                    method = 'PUT' if url_action == 'upload' else 'GET'
+                    presigned_url = storage_instance.client.sign_url(method, filepath, expires)
+            
+            # 华为云 OBS
+            elif isinstance(storage_instance, OBSStorage):
+                if hasattr(storage_instance, 'obsClient') and storage_instance.obsClient:
+                    method = 'PUT' if url_action == 'upload' else 'GET'
+                    resp = storage_instance.obsClient.createSignedUrl(
+                        method=method,
+                        bucketName=storage_instance.bucket,
+                        objectKey=filepath,
+                        expires=expires
+                    )
+                    if hasattr(resp, 'signedUrl'):
+                        presigned_url = resp.signedUrl
+            
+            if presigned_url:
+                return Response({
+                    'presigned_url': presigned_url,
+                    'filepath': filepath,
+                    'action': url_action,
+                    'expires': expires,
+                    'storage_type': storage_instance.__class__.__name__
+                })
+            else:
+                return Response({'error': 'Failed to generate presigned URL'}, status=500)
+        
+        except Exception as e:
+            logger.error(f"Error generating presigned URL: {e}")
+            return Response({'error': str(e)}, status=500)
+
     @action(methods=[POST], detail=True, permission_classes=[IsServiceAccount, ], serializer_class=FileSerializer)
     def upload(self, request, *args, **kwargs):
+        """
+        文件上传接口
+        保持原有逻辑不变，文件上传到本地后会自动同步到对象存储
+        """
         ftp_log = self.get_object()
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
