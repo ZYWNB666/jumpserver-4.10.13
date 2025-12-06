@@ -22,8 +22,11 @@ urlpatterns = ops_urlpatterns + \
               terminal_urlpatterns
 
 if settings.XPACK_ENABLED:
-    from xpack.plugins.cloud.urls.ws_urls import urlpatterns as xcloud_urlpatterns
-    urlpatterns += xcloud_urlpatterns
+    try:
+        from xpack.plugins.cloud.urls.ws_urls import urlpatterns as xcloud_urlpatterns
+        urlpatterns += xcloud_urlpatterns
+    except ImportError:
+        pass  # cloud plugin not installed
 
 
 @database_sync_to_async

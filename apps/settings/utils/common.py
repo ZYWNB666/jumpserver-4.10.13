@@ -9,8 +9,11 @@ from common.utils import lookup_domain
 def get_interface_setting_or_default():
     if not settings.XPACK_ENABLED:
         return default_interface
-    from xpack.plugins.interface.models import Interface
-    return Interface.get_interface_setting()
+    try:
+        from xpack.plugins.interface.models import Interface
+        return Interface.get_interface_setting()
+    except ImportError:
+        return default_interface
 
 
 def get_login_title():
