@@ -18,7 +18,7 @@ from accounts.models import (
 )
 from assets.models import Asset
 from common.api import JMSModelViewSet
-from common.permissions import IsValidLicense
+# from common.permissions import IsValidLicense  # 已移除企业版授权验证
 from common.utils import many_get
 from orgs.mixins.api import OrgBulkModelViewSet
 from rbac.permissions import RBACPermission
@@ -38,7 +38,7 @@ class CheckAccountAutomationViewSet(OrgBulkModelViewSet):
     model = CheckAccountAutomation
     filterset_fields = ("name",)
     search_fields = filterset_fields
-    permission_classes = [RBACPermission, IsValidLicense]
+    permission_classes = [RBACPermission]  # 已移除 IsValidLicense 企业版验证
     serializer_class = serializers.CheckAccountAutomationSerializer
 
 
@@ -52,7 +52,7 @@ class CheckAccountExecutionViewSet(AutomationExecutionViewSet):
     )
     ordering = ("-date_created",)
     tp = AutomationTypes.check_account
-    permission_classes = [RBACPermission, IsValidLicense]
+    permission_classes = [RBACPermission]  # 已移除 IsValidLicense 企业版验证
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -86,7 +86,7 @@ class AccountRiskViewSet(OrgBulkModelViewSet):
     search_fields = ["username", "asset__name"]
     filterset_fields = ("risk", "status", "asset_id")
     extra_filter_backends = [NodeFilterBackend]
-    permission_classes = [RBACPermission, IsValidLicense]
+    permission_classes = [RBACPermission]  # 已移除 IsValidLicense 企业版验证
     serializer_classes = {
         "default": serializers.AccountRiskSerializer,
         "assets": serializers.AssetRiskSerializer,
@@ -145,7 +145,7 @@ class AccountRiskViewSet(OrgBulkModelViewSet):
 class CheckAccountEngineViewSet(JMSModelViewSet):
     search_fields = ("name",)
     serializer_class = serializers.CheckAccountEngineSerializer
-    permission_classes = [RBACPermission, IsValidLicense]
+    permission_classes = [RBACPermission]  # 已移除 IsValidLicense 企业版验证
     perm_model = CheckAccountEngine
     http_method_names = ['get', 'options']
 

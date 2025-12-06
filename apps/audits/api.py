@@ -144,6 +144,11 @@ class FTPLogViewSet(OrgModelViewSet):
                 msg = "Failed save file `{}`: {}".format(ftp_log.id, err)
                 logger.error(msg)
                 return Response({'msg': str(err)}, status=400)
+            
+            # 标记文件已上传，可以下载
+            ftp_log.has_file = True
+            ftp_log.save(update_fields=['has_file'])
+            
             url = default_storage.url(name)
             return Response({'url': url}, status=201)
         else:
