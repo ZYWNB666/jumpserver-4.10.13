@@ -4,7 +4,7 @@ import secrets
 from urllib.parse import urlencode
 
 from django.shortcuts import redirect
-from django.contrib import auth
+from django.contrib.auth import login as auth_login
 from django.views import View
 from django.conf import settings
 from django.http import JsonResponse
@@ -146,6 +146,11 @@ class FeishuSSOCallbackView(AuthMixin, View):
             # 使用 JumpServer 标准的认证流程
             try:
                 self.check_oauth2_auth(user, settings.AUTH_BACKEND_FEISHU_SSO)
+                # 显式标记 session 已修改并保存
+                request.session.modified = True
+                request.session.save()
+                # 打印调试信息
+                logger.info(f'Session after check_oauth2_auth: auth_password={request.session.get("auth_password")}, user_id={request.session.get("user_id")}, auth_backend={request.session.get("auth_backend")}')
             except Exception as e:
                 self.set_login_failed_mark()
                 msg = str(e)
@@ -155,12 +160,24 @@ class FeishuSSOCallbackView(AuthMixin, View):
                     'message': msg
                 }, status=401)
             
-            # 关键修复：调用 auth.login() 设置 session cookie
-            # 这是Django认证的标准流程，会自动设置session cookie到响应头
             logger.info(f'User logged in via Feishu SSO: {user.username}')
-            auth.login(request, user)
+            logger.info(f'Session key: {request.session.session_key}')
             
-            return self.redirect_to_guard_view()
+            # 强制从Redis读取验证session是否真的保存了
+            from django.contrib.sessions.backends.base import SessionBase
+            from django.conf import settings as django_settings
+            import importlib
+            
+            # 获取session engine
+            engine = importlib.import_module(django_settings.SESSION_ENGINE)
+            test_session = engine.SessionStore(session_key=request.session.session_key)
+            test_session.load()
+            logger.info(f'Verify session from Redis: auth_password={test_session.get("auth_password")}, user_id={test_session.get("user_id")}')
+            
+            response = self.redirect_to_guard_view()
+            logger.info(f'Response cookies: {response.cookies}')
+            logger.info(f'Response Set-Cookie header: {response.get("Set-Cookie", "Not set")}')
+            return response
         else:
             logger.warning('Authentication failed')
             return JsonResponse({
