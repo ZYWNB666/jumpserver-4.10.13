@@ -106,12 +106,16 @@ class FeishuSSOCallbackView(AuthMixin, View):
         处理飞书OAuth回调
         
         Args:
-            request: HTTP请求对象，包含code和state参数
+            request: HTTP请求对象,包含code和state参数
         
         Returns:
             HttpResponseRedirect: 登录成功后重定向到目标页面
             JsonResponse: 登录失败返回错误信息
         """
+        # 调试: 检查请求开始时的session状态
+        logger.info(f'Callback request session_key at start: {request.session.session_key}')
+        logger.info(f'Callback request COOKIES: {list(request.COOKIES.keys())}')
+        
         code = request.GET.get('code')
         state = request.GET.get('state')
         
@@ -157,7 +161,11 @@ class FeishuSSOCallbackView(AuthMixin, View):
                 }, status=401)
             
             logger.info(f'User logged in via Feishu SSO: {user.username}')
-            return self.redirect_to_guard_view()
+            logger.info(f'Session key: {request.session.session_key}')
+            response = self.redirect_to_guard_view()
+            logger.info(f'Response cookies: {response.cookies}')
+            logger.info(f'Response Set-Cookie header: {response.get("Set-Cookie", "Not set")}')
+            return response
         else:
             logger.warning('Authentication failed')
             return JsonResponse({
