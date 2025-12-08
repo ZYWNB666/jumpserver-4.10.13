@@ -170,9 +170,9 @@ class FeishuSSOBackend(BaseBackend):
                 is_active=True,
             )
             
-            # 添加到组织
+            # 添加到组织(使用add_member方法,它会自动创建正确的角色绑定)
             if default_org:
-                user.orgs.add(default_org)
+                default_org.add_member(user)
             
             logger.info(f'Created new user from Feishu: {username}')
             return user
