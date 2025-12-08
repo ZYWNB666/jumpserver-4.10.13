@@ -129,6 +129,13 @@ def get_auth_methods():
             'logo': static('img/login_feishu_logo.png')
         },
         {
+            'name': _('FeiShu SSO'),
+            'enabled': getattr(settings, 'FEISHU_SSO_ENABLED', False),
+            'url': reverse('api-xpack:feishu-sso:login'),
+            'logo': static('img/login_feishu_logo.png'),
+            'auto_redirect': False
+        },
+        {
             'name': 'Lark',
             'enabled': settings.AUTH_LARK,
             'url': reverse('authentication:lark-qr-login'),
