@@ -142,6 +142,9 @@ class FeishuSSOCallbackView(AuthMixin, View):
             # 使用 JumpServer 标准的认证流程
             try:
                 self.check_oauth2_auth(user, settings.AUTH_BACKEND_FEISHU_SSO)
+                # 显式标记 session 已修改并保存
+                request.session.modified = True
+                request.session.save()
                 # 打印调试信息
                 logger.info(f'Session after check_oauth2_auth: auth_password={request.session.get("auth_password")}, user_id={request.session.get("user_id")}, auth_backend={request.session.get("auth_backend")}')
             except Exception as e:
