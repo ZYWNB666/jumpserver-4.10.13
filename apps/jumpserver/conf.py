@@ -476,7 +476,7 @@ class Config(dict):
         'FEISHU_SSO_APP_SECRET': '26YOsEhHdQ3ms4UP2dtwXfPDA7u1v3jz',
         'FEISHU_SSO_AUTO_CREATE_USER': True,
         'FEISHU_SSO_ALWAYS_UPDATE_USER': True,
-        'FEISHU_SSO_MATCH_BY_EMAIL': False,
+        'FEISHU_SSO_MATCH_BY_EMAIL': True,
         'FEISHU_SSO_USERNAME_FIELD': 'mobile',
         'FEISHU_SSO_DEFAULT_ORG_IDS': [DEFAULT_ID],
 

@@ -11,6 +11,7 @@ from django.http import JsonResponse
 from rest_framework.permissions import AllowAny
 
 from common.utils import get_logger
+from authentication.mixins import AuthMixin
 from .auth_backend import FeishuSSOBackend
 from .sdk.client import FeishuSSOClient
 
@@ -87,7 +88,7 @@ class FeishuSSOLoginView(View):
         return state
 
 
-class FeishuSSOCallbackView(View):
+class FeishuSSOCallbackView(AuthMixin, View):
     """
     飞书SSO回调视图
     
@@ -138,18 +139,20 @@ class FeishuSSOCallbackView(View):
         user = backend.authenticate(request, feishu_code=code)
         
         if user:
-            # 登录用户
-            auth_login(
-                request, 
-                user, 
-                backend='xpack.plugins.feishu_sso.auth_backend.FeishuSSOBackend'
-            )
-            
-            # 获取跳转URL
-            next_url = request.session.pop('feishu_sso_next', '/')
+            # 使用 JumpServer 标准的认证流程
+            try:
+                self.check_oauth2_auth(user, settings.AUTH_BACKEND_FEISHU_SSO)
+            except Exception as e:
+                self.set_login_failed_mark()
+                msg = str(e)
+                logger.error(f'Feishu SSO auth check failed: {msg}')
+                return JsonResponse({
+                    'error': 'Authentication failed',
+                    'message': msg
+                }, status=401)
             
             logger.info(f'User logged in via Feishu SSO: {user.username}')
-            return redirect(next_url)
+            return self.redirect_to_guard_view()
         else:
             logger.warning('Authentication failed')
             return JsonResponse({
