@@ -162,6 +162,18 @@ class FeishuSSOCallbackView(AuthMixin, View):
             
             logger.info(f'User logged in via Feishu SSO: {user.username}')
             logger.info(f'Session key: {request.session.session_key}')
+            
+            # 强制从Redis读取验证session是否真的保存了
+            from django.contrib.sessions.backends.base import SessionBase
+            from django.conf import settings as django_settings
+            import importlib
+            
+            # 获取session engine
+            engine = importlib.import_module(django_settings.SESSION_ENGINE)
+            test_session = engine.SessionStore(session_key=request.session.session_key)
+            test_session.load()
+            logger.info(f'Verify session from Redis: auth_password={test_session.get("auth_password")}, user_id={test_session.get("user_id")}')
+            
             response = self.redirect_to_guard_view()
             logger.info(f'Response cookies: {response.cookies}')
             logger.info(f'Response Set-Cookie header: {response.get("Set-Cookie", "Not set")}')
