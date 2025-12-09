@@ -31,7 +31,7 @@ class UserCheckOtpCodeForm(forms.Form):
 class UserProfileForm(forms.ModelForm):
     username = forms.CharField(disabled=True, label=_("Username"))
     name = forms.CharField(disabled=True, label=_("Name"))
-    email = forms.CharField(disabled=True)
+    email = forms.EmailField(disabled=False, label=_("Email"), required=False)  # 允许用户编辑邮箱
 
     class Meta:
         model = User

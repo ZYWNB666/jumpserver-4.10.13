@@ -82,7 +82,7 @@ class UserProfileSerializer(UserSerializer):
         extra_kwargs.update({
             'name': {'read_only': True, 'max_length': 128},
             'username': {'read_only': True, 'max_length': 128},
-            'email': {'read_only': True},
+            'email': {'read_only': False},  # 允许用户编辑自己的邮箱
             'is_first_login': {'label': _('Is first login'), 'read_only': False},
             'source': {'read_only': True},
             'is_valid': {'read_only': True},
@@ -107,6 +107,11 @@ class UserProfileSerializer(UserSerializer):
         if org_roles_field:
             org_roles_field.read_only = True
 
+        # 确保邮箱字段是可编辑的
+        email_field = self.fields.get('email')
+        if email_field:
+            email_field.read_only = False
+            
         if settings.PRIVACY_MODE:
             for field in (
                     'phone', 'wechat',
@@ -130,6 +135,12 @@ class UserProfileSerializer(UserSerializer):
                 raise serializers.ValidationError(_('Not a valid ssh public key'))
             return public_key
         return None
+
+    def validate_email(self, email):
+        """验证邮箱必须是@magikcompute.ai域名"""
+        if email and not email.endswith('@magikcompute.ai'):
+            raise serializers.ValidationError(_('Email domain must be @magikcompute.ai'))
+        return email
 
     def validate_password(self, password):
         from rbac.models import Role

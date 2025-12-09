@@ -74,6 +74,9 @@ class FeishuSSOBackend(BaseBackend):
                 logger.warning('Failed to get user info from Feishu')
                 return None
             
+            # 打印飞书返回的完整用户信息
+            logger.info(f'Feishu SSO returned user info: {user_info}')
+            
             feishu_user_id = user_info.get('user_id')
             if not feishu_user_id:
                 logger.warning('No user_id in Feishu user info')
@@ -162,10 +165,21 @@ class FeishuSSOBackend(BaseBackend):
             username_field = getattr(settings, 'FEISHU_SSO_USERNAME_FIELD', 'user_id')
             username = user_info.get(username_field, feishu_user_id)
 
-            # 如果选择 mobile 作为 username，做简单清洗（去掉非数字），以避免包含 '+' 或空格导致的问题
+            # 如果选择 mobile 作为 username，做清洗处理
             if username_field == 'mobile' and username:
                 import re
+                # 1. 去掉非数字字符(+, -, 空格等)
                 cleaned = re.sub(r"\D", "", str(username))
+                
+                # 2. 去掉开头的国家代码(86, 1, 44等)
+                # 中国手机号是11位,去掉86后应该是11位
+                if cleaned.startswith('86') and len(cleaned) == 13:
+                    cleaned = cleaned[2:]  # 去掉开头的86
+                    logger.info(f'Removed country code 86 from mobile, username: {cleaned}')
+                elif cleaned.startswith('1') and len(cleaned) == 12:
+                    cleaned = cleaned[1:]  # 去掉美国/加拿大的1
+                    logger.info(f'Removed country code 1 from mobile, username: {cleaned}')
+                
                 if cleaned:
                     username = cleaned
                 else:
@@ -194,15 +208,34 @@ class FeishuSSOBackend(BaseBackend):
             else:
                 default_org = Organization.default()
             
-            # 创建用户
+            # 邮箱处理:
+            # 1. 如果飞书返回了邮箱,直接使用
+            # 2. 如果没有,使用唯一的临时邮箱格式(基于user_id确保唯一性)
+            # 注意: Django的EmailField要求有效格式,且数据库有unique约束
+            if email:
+                user_email = email
+            else:
+                # 使用飞书user_id生成唯一的临时邮箱
+                # 格式: feishu_{user_id}@temp.local (确保唯一性,避免冲突)
+                user_email = f"feishu_{feishu_user_id}@temp.local"
+                logger.info(f'User {username} has no email from Feishu, using temporary email: {user_email}')
+            
+            # 手机号处理: 如果飞书没有返回手机号,设为空字符串
+            # 注意: 手机号需要在飞书开放平台申请 contact:user.phone:readonly 权限
+            user_phone = mobile if mobile else ''
+            if not mobile:
+                logger.warning(f'User {username} has no mobile from Feishu. Please apply for contact:user.phone:readonly permission in Feishu Open Platform.')
+            
+            # 创建用户(保持is_first_login=True让用户进入improvement页面完善信息)
             user = User.objects.create(
                 username=username,
                 name=name or username,
-                email=email,
-                phone=mobile,
+                email=user_email,
+                phone=user_phone,
                 feishu_id=feishu_user_id,
-                source='feishu_sso',
+                source='local',  # 使用local而不是feishu_sso,避免前端禁用字段
                 is_active=True,
+                is_first_login=True,  # 保持True,引导用户进入improvement页面完善邮箱等信息
             )
             
             # 添加到组织(使用add_member方法,它会自动创建正确的角色绑定)

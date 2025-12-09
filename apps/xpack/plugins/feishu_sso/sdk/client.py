@@ -88,6 +88,11 @@ class FeishuSSOClient:
         1. 使用code换取user_access_token
         2. 使用user_access_token获取用户详细信息
         
+        注意：
+        - mobile字段需要在飞书开放平台申请 contact:user.phone:readonly 权限
+        - email字段需要申请 contact:user.email:readonly 权限
+        - 未申请权限时,这些字段会返回空字符串
+        
         Args:
             code: OAuth授权code（临时授权码）
         
@@ -100,8 +105,8 @@ class FeishuSSOClient:
                 'user_id': 'ou_xxx',
                 'name': '张三',
                 'en_name': 'Zhang San',
-                'email': 'zhangsan@example.com',
-                'mobile': '+86-13800138000',
+                'email': 'zhangsan@example.com',  # 需要权限
+                'mobile': '+86-13800138000',      # 需要权限
                 'avatar_url': 'https://...',
             }
         """

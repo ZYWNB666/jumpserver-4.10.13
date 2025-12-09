@@ -21,6 +21,7 @@ class Source(models.TextChoices):
     wecom = "wecom", _("WeCom")
     dingtalk = "dingtalk", _("DingTalk")
     feishu = "feishu", _("FeiShu")
+    feishu_sso = "feishu_sso", _("FeiShu SSO")
     lark = "lark", _("Lark")
     slack = "slack", _("Slack")
     custom = "custom", "Custom"
@@ -52,6 +53,7 @@ class SourceMixin:
         Source.oauth2: [settings.AUTH_BACKEND_OAUTH2],
         Source.wecom: [settings.AUTH_BACKEND_WECOM],
         Source.feishu: [settings.AUTH_BACKEND_FEISHU],
+        Source.feishu_sso: [settings.AUTH_BACKEND_FEISHU_SSO],
         Source.lark: [settings.AUTH_BACKEND_LARK],
         Source.slack: [settings.AUTH_BACKEND_SLACK],
         Source.dingtalk: [settings.AUTH_BACKEND_DINGTALK],
@@ -71,6 +73,7 @@ class SourceMixin:
             cls.Source.oauth2: settings.AUTH_OAUTH2,
             cls.Source.wecom: settings.AUTH_WECOM,
             cls.Source.feishu: settings.AUTH_FEISHU,
+            cls.Source.feishu_sso: getattr(settings, 'FEISHU_SSO_ENABLED', False),
             cls.Source.slack: settings.AUTH_SLACK,
             cls.Source.dingtalk: settings.AUTH_DINGTALK,
             cls.Source.custom: settings.AUTH_CUSTOM,
