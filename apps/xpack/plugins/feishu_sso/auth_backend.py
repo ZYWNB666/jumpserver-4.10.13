@@ -5,6 +5,7 @@ from django.conf import settings
 from users.models import User
 from common.utils import get_logger
 from .sdk.client import FeishuSSOClient
+import time
 
 logger = get_logger(__file__)
 
@@ -140,16 +141,34 @@ class FeishuSSOBackend(BaseBackend):
             name = user_info.get('name', '')
             email = user_info.get('email', '')
             mobile = user_info.get('mobile', '')
-            
-            # 使用飞书用户ID作为username
-            # 如果想使用其他字段，可以通过配置自定义
+
+            # 使用配置指定的字段作为 username
             username_field = getattr(settings, 'FEISHU_SSO_USERNAME_FIELD', 'user_id')
             username = user_info.get(username_field, feishu_user_id)
-            
-            # 检查username是否已存在
+
+            # 如果选择 mobile 作为 username，做简单清洗（去掉非数字），以避免包含 '+' 或空格导致的问题
+            if username_field == 'mobile' and username:
+                import re
+                cleaned = re.sub(r"\D", "", str(username))
+                if cleaned:
+                    username = cleaned
+                else:
+                    logger.warning(f'Mobile field present but cleaned value empty, fallback to feishu_user_id for user: {feishu_user_id}')
+                    username = feishu_user_id
+
+            # 如果 username 已存在，尝试使用 feishu_user_id 作为回退，或在末尾追加短后缀确保唯一性
             if User.objects.filter(username=username).exists():
-                logger.warning(f'Username already exists: {username}')
-                return None
+                logger.warning(f'Username already exists: {username}, trying fallback to feishu_user_id')
+                fallback = feishu_user_id or (username + '_' + str(int(time.time()) % 10000))
+                if User.objects.filter(username=fallback).exists():
+                    # 生成唯一后缀
+                    suffix = 1
+                    base = username
+                    while User.objects.filter(username=f"{base}_{suffix}").exists():
+                        suffix += 1
+                    username = f"{base}_{suffix}"
+                else:
+                    username = fallback
             
             # 获取默认组织
             from orgs.models import Organization
