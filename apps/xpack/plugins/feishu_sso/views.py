@@ -4,6 +4,7 @@ import secrets
 from urllib.parse import urlencode
 
 from django.shortcuts import redirect
+from django.urls import reverse
 from django.contrib.auth import login as auth_login
 from django.views import View
 from django.conf import settings
@@ -143,14 +144,13 @@ class FeishuSSOCallbackView(AuthMixin, View):
         user = backend.authenticate(request, feishu_code=code)
         
         if user:
-            # 使用 JumpServer 标准的认证流程
+            # 设置 user.backend 属性,Django login() 需要这个
+            user.backend = settings.AUTH_BACKEND_FEISHU_SSO
+            
+            # 先调用 JumpServer 的认证检查,设置 session 数据
             try:
                 self.check_oauth2_auth(user, settings.AUTH_BACKEND_FEISHU_SSO)
-                # 显式标记 session 已修改并保存
-                request.session.modified = True
-                request.session.save()
-                # 打印调试信息
-                logger.info(f'Session after check_oauth2_auth: auth_password={request.session.get("auth_password")}, user_id={request.session.get("user_id")}, auth_backend={request.session.get("auth_backend")}')
+                logger.info(f'check_oauth2_auth completed: auth_password={request.session.get("auth_password")}, user_id={request.session.get("user_id")}')
             except Exception as e:
                 self.set_login_failed_mark()
                 msg = str(e)
@@ -160,24 +160,30 @@ class FeishuSSOCallbackView(AuthMixin, View):
                     'message': msg
                 }, status=401)
             
+            # 然后调用 Django 标准登录,这会:
+            # 1. 设置 user 到 request.user
+            # 2. 调用 cycle_key() 创建新的 session key
+            # 3. 设置 Django 的 session 变量
+            # 4. 标记 session 为 modified
+            auth_login(request, user)
+            logger.info(f'Django login completed for user: {user.username}')
+            logger.info(f'Session key after login: {request.session.session_key}')
+            logger.info(f'Session data: auth_password={request.session.get("auth_password")}, _auth_user_backend={request.session.get("_auth_user_backend")}')
+            logger.info(f'Session modified flag: {request.session.modified}')
+            
             logger.info(f'User logged in via Feishu SSO: {user.username}')
-            logger.info(f'Session key: {request.session.session_key}')
             
-            # 强制从Redis读取验证session是否真的保存了
-            from django.contrib.sessions.backends.base import SessionBase
-            from django.conf import settings as django_settings
-            import importlib
+            # 构建重定向URL
+            guard_url = reverse('authentication:login-guard')
+            args = request.META.get('QUERY_STRING', '')
+            if args:
+                guard_url = "%s?%s" % (guard_url, args)
             
-            # 获取session engine
-            engine = importlib.import_module(django_settings.SESSION_ENGINE)
-            test_session = engine.SessionStore(session_key=request.session.session_key)
-            test_session.load()
-            logger.info(f'Verify session from Redis: auth_password={test_session.get("auth_password")}, user_id={test_session.get("user_id")}')
+            logger.info(f'Final redirect to guard view: {guard_url}')
             
-            response = self.redirect_to_guard_view()
-            logger.info(f'Response cookies: {response.cookies}')
-            logger.info(f'Response Set-Cookie header: {response.get("Set-Cookie", "Not set")}')
-            return response
+            # 返回重定向
+            # SessionMiddleware 会在 process_response 时自动设置 session cookie
+            return redirect(guard_url)
         else:
             logger.warning('Authentication failed')
             return JsonResponse({
