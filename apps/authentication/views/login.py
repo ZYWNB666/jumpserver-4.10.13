@@ -283,7 +283,15 @@ class UserLoginGuardView(mixins.AuthMixin, RedirectView):
         return url
 
     def login_it(self, user):
+        from common.utils import get_logger
+        logger = get_logger(__name__)
+        
+        # 正常调用 auth_login 完成 Django 登录
+        # OAuth2 callback 不再调用 auth_login，所以在这里完成最终登录
+        logger.info(f'Calling auth_login for user: {user.username}')
         auth_login(self.request, user)
+        logger.info(f'Login completed, session_key: {self.request.session.session_key}')
+        
         # 如果设置了自动登录，那需要设置 session_id cookie 的有效期
         if self.request.session.get('auto_login'):
             age = self.request.session.get_expiry_age()

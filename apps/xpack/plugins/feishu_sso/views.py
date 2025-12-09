@@ -144,10 +144,11 @@ class FeishuSSOCallbackView(AuthMixin, View):
         user = backend.authenticate(request, feishu_code=code)
         
         if user:
-            # 设置 user.backend 属性,Django login() 需要这个
+            # 设置 user.backend 属性
             user.backend = settings.AUTH_BACKEND_FEISHU_SSO
             
-            # 先调用 JumpServer 的认证检查,设置 session 数据
+            # 调用 JumpServer 的认证检查,设置 session 数据
+            # 重要：不在这里调用 auth_login()，避免302重定向时session cookie丢失
             try:
                 self.check_oauth2_auth(user, settings.AUTH_BACKEND_FEISHU_SSO)
                 logger.info(f'check_oauth2_auth completed: auth_password={request.session.get("auth_password")}, user_id={request.session.get("user_id")}')
@@ -160,35 +161,24 @@ class FeishuSSOCallbackView(AuthMixin, View):
                     'message': msg
                 }, status=401)
             
-            # 然后调用 Django 标准登录,这会:
-            # 1. 设置 user 到 request.user
-            # 2. 调用 cycle_key() 创建新的 session key
-            # 3. 设置 Django 的 session 变量
-            # 4. 标记 session 为 modified
-            auth_login(request, user)
-            logger.info(f'Django login completed for user: {user.username}')
-            logger.info(f'Session key after login: {request.session.session_key}')
-            logger.info(f'Session data: auth_password={request.session.get("auth_password")}, _auth_user_backend={request.session.get("_auth_user_backend")}')
-            logger.info(f'Session modified flag: {request.session.modified}')
+            # 不调用 auth_login()，让 guard view 在最终页面完成登录
+            # 这样避免在302重定向过程中 cycle_key() 导致的 session cookie 丢失问题
+            logger.info(f'User authenticated via Feishu SSO: {user.username}')
+            logger.info(f'Session key (unchanged): {request.session.session_key}')
             
-            # 显式保存session，确保数据持久化到Redis
+            # 显式保存session，确保 check_oauth2_auth 设置的数据持久化
             request.session.save()
-            logger.info(f'Session explicitly saved after login')
+            logger.info(f'Session saved, will complete login in guard view')
             
-            logger.info(f'User logged in via Feishu SSO: {user.username}')
-            
-            # 构建重定向URL
+            # 构建重定向URL到 guard view
+            # guard view 会读取session中的 auth_password 和 user_id，然后调用 login_it() 完成登录
             guard_url = reverse('authentication:login-guard')
             args = request.META.get('QUERY_STRING', '')
             if args:
                 guard_url = "%s?%s" % (guard_url, args)
             
-            logger.info(f'Final redirect to guard view: {guard_url}')
-            
-            # 返回重定向
-            response = redirect(guard_url)
-            logger.info(f'Redirect response created, session_key in response: {request.session.session_key}')
-            return response
+            logger.info(f'Redirecting to guard view: {guard_url}')
+            return redirect(guard_url)
         else:
             logger.warning('Authentication failed')
             return JsonResponse({
