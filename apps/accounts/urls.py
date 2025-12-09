@@ -16,21 +16,21 @@ router.register(r'account-templates', api.AccountTemplateViewSet, 'account-templ
 router.register(r'account-template-secrets', api.AccountTemplateSecretsViewSet, 'account-template-secret')
 router.register(r'account-backup-plans', api.BackupAccountViewSet, 'account-backup')
 router.register(r'account-backup-plan-executions', api.BackupAccountExecutionViewSet, 'account-backup-execution')
-# 禁用账号改密功能 - 安全设置模块
-# router.register(r'change-secret-automations', api.ChangeSecretAutomationViewSet, 'change-secret-automation')
-# router.register(r'change-secret-status', api.ChangeSecretStatusViewSet, 'change-secret-status')
-# router.register(r'change-secret-executions', api.ChangSecretExecutionViewSet, 'change-secret-execution')
-# router.register(r'change-secret-records', api.ChangeSecretRecordViewSet, 'change-secret-record')
+# 账号改密功能
+router.register(r'change-secret-automations', api.ChangeSecretAutomationViewSet, 'change-secret-automation')
+router.register(r'change-secret-status', api.ChangeSecretStatusViewSet, 'change-secret-status')
+router.register(r'change-secret-executions', api.ChangSecretExecutionViewSet, 'change-secret-execution')
+router.register(r'change-secret-records', api.ChangeSecretRecordViewSet, 'change-secret-record')
 router.register(r'gather-account-automations', api.DiscoverAccountsAutomationViewSet, 'gather-account-automation')
 router.register(r'gather-account-executions', api.DiscoverAccountsExecutionViewSet, 'gather-account-execution')
 router.register(r'push-account-automations', api.PushAccountAutomationViewSet, 'push-account-automation')
 router.register(r'push-account-executions', api.PushAccountExecutionViewSet, 'push-account-execution')
 router.register(r'push-account-records', api.PushAccountRecordViewSet, 'push-account-record')
-# 禁用风险检测功能 - 安全设置模块
-# router.register(r'check-account-automations', api.CheckAccountAutomationViewSet, 'check-account-automation')
-# router.register(r'check-account-executions', api.CheckAccountExecutionViewSet, 'check-account-execution')
-# router.register(r'account-check-engines', api.CheckAccountEngineViewSet, 'account-check-engine')
-# router.register(r'account-risks', api.AccountRiskViewSet, 'account-risks')
+# 风险检测功能
+router.register(r'check-account-automations', api.CheckAccountAutomationViewSet, 'check-account-automation')
+router.register(r'check-account-executions', api.CheckAccountExecutionViewSet, 'check-account-execution')
+router.register(r'account-check-engines', api.CheckAccountEngineViewSet, 'account-check-engine')
+router.register(r'account-risks', api.AccountRiskViewSet, 'account-risks')
 router.register(r'integration-applications', api.IntegrationApplicationViewSet, 'integration-apps')
 
 urlpatterns = [
@@ -39,13 +39,13 @@ urlpatterns = [
     path('account-secrets/<uuid:pk>/histories/', api.AccountHistoriesSecretAPI.as_view(),
          name='account-secret-history'),
 
-    # 禁用账号改密相关路径 - 安全设置模块
-    # path('change-secret/<uuid:pk>/asset/remove/', api.ChangSecretRemoveAssetApi.as_view(),
-    #      name='change-secret-remove-asset'),
-    # path('change-secret/<uuid:pk>/asset/add/', api.ChangSecretAddAssetApi.as_view(), name='change-secret-add-asset'),
-    # path('change-secret/<uuid:pk>/nodes/', api.ChangSecretNodeAddRemoveApi.as_view(),
-    #      name='change-secret-add-or-remove-node'),
-    # path('change-secret/<uuid:pk>/assets/', api.ChangSecretAssetsListApi.as_view(), name='change-secret-assets'),
+    # 账号改密相关路径
+    path('change-secret/<uuid:pk>/asset/remove/', api.ChangSecretRemoveAssetApi.as_view(),
+         name='change-secret-remove-asset'),
+    path('change-secret/<uuid:pk>/asset/add/', api.ChangSecretAddAssetApi.as_view(), name='change-secret-add-asset'),
+    path('change-secret/<uuid:pk>/nodes/', api.ChangSecretNodeAddRemoveApi.as_view(),
+         name='change-secret-add-or-remove-node'),
+    path('change-secret/<uuid:pk>/assets/', api.ChangSecretAssetsListApi.as_view(), name='change-secret-assets'),
 
     path('push-account/<uuid:pk>/asset/remove/', api.PushAccountRemoveAssetApi.as_view(),
          name='push-account-remove-asset'),
@@ -54,8 +54,8 @@ urlpatterns = [
          name='push-account-add-or-remove-node'),
     path('push-account/<uuid:pk>/assets/', api.PushAccountAssetsListApi.as_view(), name='push-account-assets'),
     path('pam-dashboard/', api.PamDashboardApi.as_view(), name='pam-dashboard'),
-    # 禁用账号改密仪表板 - 安全设置模块
-    # path('change-secret-dashboard/', api.ChangeSecretDashboardApi.as_view(), name='change-secret-dashboard'),
+    # 账号改密仪表板
+    path('change-secret-dashboard/', api.ChangeSecretDashboardApi.as_view(), name='change-secret-dashboard'),
 ]
 
 urlpatterns += router.urls

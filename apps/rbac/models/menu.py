@@ -19,6 +19,7 @@ class MenuPermission(models.Model):
             ('view_webterminal', _('Can view web terminal')),
             ('view_filemanager', _('Can view file manager')),
             ('view_systemtools', _('Can view System Tools')),
+            ('view_other', _('Can view other view')),  # 添加工单等其他视图权限
             ('view_userloginreport', _('Can view user login report')),
             ('view_userchangepasswordreport', _('Can view user change password report')),
             ('view_assetstatisticsreport', _('Can view asset statistics report')),

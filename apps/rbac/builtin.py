@@ -13,6 +13,7 @@ user_perms = (
     ('rbac', 'menupermission', 'view', 'workbench'),
     ('rbac', 'menupermission', 'view', 'webterminal'),
     ('rbac', 'menupermission', 'view', 'filemanager'),
+    ('rbac', 'menupermission', 'view', 'other'),  # 添加其他视图权限（包含工单）
     ('perms', 'permedasset', 'view,connect', 'myassets'),
     ('perms', 'permedapplication', 'view,connect', 'myapps'),
     ('assets', 'asset', 'match', 'asset'),
@@ -24,6 +25,7 @@ user_perms = (
     ("ops", "jobexecution", "*", "*"),
     ("ops", "celerytaskexecution", "view", "*"),
     ("users", "user", "match", "user"),
+    ('tickets', 'ticket', '*', '*'),  # 添加工单完整权限
 )
 
 system_user_perms = (

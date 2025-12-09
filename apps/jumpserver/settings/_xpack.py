@@ -17,19 +17,20 @@ if not XPACK_DISABLED:
     XPACK_ENABLED = os.path.isdir(XPACK_DIR)
 XPACK_TEMPLATES_DIR = []
 XPACK_CONTEXT_PROCESSOR = []
-XPACK_LICENSE_IS_VALID = False
-XPACK_LICENSE_EDITION = ""
+XPACK_LICENSE_IS_VALID = True  # 启用企业版功能（工单等）
+XPACK_LICENSE_EDITION = "Enterprise"
 XPACK_LICENSE_EDITION_ULTIMATE = False
 XPACK_LICENSE_INFO = {
     'corporation': corporation,
 }
 
-XPACK_LICENSE_CONTENT = 'community'
+XPACK_LICENSE_CONTENT = 'enterprise'  # 与 XPACK_LICENSE_EDITION 保持一致
 
 if XPACK_ENABLED:
     from xpack.utils import get_xpack_templates_dir, get_xpack_context_processor
 
     INSTALLED_APPS.insert(0, 'xpack.apps.XpackConfig')
+    INSTALLED_APPS.insert(1, 'xpack.plugins.interface')  # 界面设置插件
     XPACK_TEMPLATES_DIR = get_xpack_templates_dir(const.BASE_DIR)
     XPACK_CONTEXT_PROCESSOR = get_xpack_context_processor()
     TEMPLATES[0]['DIRS'].extend(XPACK_TEMPLATES_DIR)

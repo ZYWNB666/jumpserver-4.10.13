@@ -49,13 +49,11 @@ app_nodes_data = [
 extra_nodes_data = [
     {"id": "cloud_import", "name": _("Cloud import"), "pId": "assets"},
     {"id": "account_node", "name": _("Accounts"), "pId": "view_pam"},
-    # 禁用账号风险节点 - 安全设置模块
-    # {"id": "account_risk_node", "name": _("Account risk"), "pId": "view_pam"},
+    {"id": "account_risk_node", "name": _("Account risk"), "pId": "view_pam"},
     {"id": "backup_account_node", "name": _("Backup account"), "pId": "view_pam"},
     {"id": "gather_account_node", "name": _("Gather account"), "pId": "view_pam"},
     {"id": "push_account_node", "name": _("Push account"), "pId": "view_pam"},
-    # 禁用账号改密节点 - 安全设置模块
-    # {"id": "account_change_plan_node", "name": _("Account change secret"), "pId": "view_pam"},
+    {"id": "account_change_plan_node", "name": _("Account change secret"), "pId": "view_pam"},
     {'id': "my_assets", "name": _("My assets"), "pId": "view_workbench"},
     {'id': "operation_center", "name": _('App ops'), "pId": "view_workbench"},
     {'id': "notifications", "name": _("Notifications"), "pId": "view_setting"},
@@ -91,11 +89,10 @@ special_pid_mapper = {
     'xpack.strategyrule': 'cloud_import',
     'accounts.account': 'account_node',
     'accounts.accounttemplate': 'account_node',
-    # 禁用账号风险相关权限 - 安全设置模块
-    # 'accounts.accountrisk': 'account_risk_node',
-    # 'accounts.checkaccountengine': 'account_risk_node',
-    # 'accounts.checkaccountautomation': 'account_risk_node',
-    # 'accounts.checkaccountexecution': 'account_risk_node',
+    'accounts.accountrisk': 'account_risk_node',
+    'accounts.checkaccountengine': 'account_risk_node',
+    'accounts.checkaccountautomation': 'account_risk_node',
+    'accounts.checkaccountexecution': 'account_risk_node',
     'accounts.view_accountsession': 'view_pam',
     'accounts.view_accountactivity': 'view_pam',
     'accounts.integrationapplication': 'view_pam',
@@ -111,11 +108,10 @@ special_pid_mapper = {
     "accounts.gatheraccountsautomation": "gather_account_node",
     "accounts.view_gatheraccountsexecution": "gather_account_node",
     "accounts.add_gatheraccountsexecution": "gather_account_node",
-    # 禁用账号改密相关权限 - 安全设置模块
-    # "accounts.changesecretautomation": "account_change_plan_node",
-    # "accounts.view_changesecretexecution": "account_change_plan_node",
-    # "accounts.add_changesecretexecution": "account_change_plan_node",
-    # "accounts.view_changesecretrecord": "account_change_plan_node",
+    "accounts.changesecretautomation": "account_change_plan_node",
+    "accounts.view_changesecretexecution": "account_change_plan_node",
+    "accounts.add_changesecretexecution": "account_change_plan_node",
+    "accounts.view_changesecretrecord": "account_change_plan_node",
     'audits.ftplog': 'terminal',
     'perms.view_myassets': 'my_assets',
     'ops.job': 'operation_center',
@@ -191,7 +187,7 @@ verbose_name_mapper = {
 }
 
 xpack_nodes = [
-    'xpack', 'tickets', 'gather_account_node',
+    'xpack', 'gather_account_node',  # 已移除 'tickets' - 启用社区版工单功能
     'applications.remoteapp', "assets.accountbackupplan",
     "assets.accountbackupplanexecution",
     "rbac.orgrole", "rbac.orgrolebinding",
