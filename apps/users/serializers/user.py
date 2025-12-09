@@ -67,7 +67,7 @@ class RolesSerializerMixin(serializers.Serializer):
         ),
     )
     orgs_roles = serializers.JSONField(
-        read_only=True, label=_("Organizations and roles"), default=dict
+        read_only=True, label=_("Organizations and roles"), default=list
     )
 
     def pop_roles_if_need(self, fields):

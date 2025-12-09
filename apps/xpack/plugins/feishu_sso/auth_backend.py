@@ -23,6 +23,22 @@ class FeishuSSOBackend(BaseBackend):
     4. 返回认证结果
     """
     
+    @staticmethod
+    def is_enabled():
+        """检查飞书SSO是否启用"""
+        return getattr(settings, 'FEISHU_SSO_ENABLED', False)
+    
+    @staticmethod
+    def username_allow_authenticate(username):
+        """检查用户名是否允许通过此后端认证"""
+        # 飞书SSO不使用用户名密码认证，总是返回True
+        return True
+    
+    def user_allow_authenticate(self, user):
+        """检查用户是否允许通过此后端认证"""
+        # 飞书SSO创建的用户总是允许认证
+        return True
+    
     def authenticate(self, request, feishu_code=None, **kwargs):
         """
         使用飞书code进行认证

@@ -134,6 +134,15 @@ class UserLoginView(mixins.AuthMixin, UserLoginContextMixin, FormView):
     redirect_field_name = 'next'
     template_name = 'authentication/login.html'
 
+    def dispatch(self, request, *args, **kwargs):
+        try:
+            return super().dispatch(request, *args, **kwargs)
+        except Exception as e:
+            import traceback
+            with open('/tmp/login_error.log', 'w') as f:
+                f.write(traceback.format_exc())
+            raise e
+
     def redirect_third_party_auth_if_need(self, request):
         # show jumpserver login page if request http://{JUMP-SERVER}/?admin=1
         if self.request.GET.get("admin", 0):
@@ -180,6 +189,7 @@ class UserLoginView(mixins.AuthMixin, UserLoginContextMixin, FormView):
         return redirect_url
 
     def get(self, request, *args, **kwargs):
+        # raise Exception("Test Exception")
         next_page = request.GET.get(self.redirect_field_name)
         if next_page:
             request.session[self.redirect_field_name] = next_page
