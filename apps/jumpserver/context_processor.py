@@ -1,21 +1,46 @@
 # -*- coding: utf-8 -*-
 #
+import os
+import json
 import datetime
 
 from django.conf import settings
 from django.templatetags.static import static
 from django.utils.translation import gettext_lazy as _
 
-default_interface = dict((
-    ('logo_logout', static('img/logo.png')),
-    ('logo_index', static('img/logo_text_white.png')),
-    ('login_image', static('img/login_image.png')),
-    ('favicon', static('img/facio.ico')),
-    ('login_title', _('JumpServer - An open-source PAM')),
-    ('theme', 'classic_green'),
-    ('theme_info', {}),
-    ('footer_content', ''),
-))
+
+def _load_interface_settings():
+    """加载已保存的界面设置"""
+    interface_file = os.path.join(settings.BASE_DIR, 'data', 'interface_settings.json')
+    saved = {}
+    try:
+        if os.path.exists(interface_file):
+            with open(interface_file, 'r', encoding='utf-8') as f:
+                saved = json.load(f)
+    except Exception:
+        pass
+    
+    # 默认值
+    defaults = {
+        'logo_logout': static('img/logo.png'),
+        'logo_index': static('img/logo_text_white.png'),
+        'login_image': static('img/login_image.png'),
+        'favicon': static('img/facio.ico'),
+        'login_title': _('JumpServer - An open-source PAM'),
+        'theme': 'classic_green',
+        'theme_info': {},
+        'footer_content': '',
+    }
+    
+    # 用已保存的值覆盖默认值
+    for key, value in saved.items():
+        if value is not None and value != '':
+            defaults[key] = value
+    
+    return defaults
+
+
+default_interface = _load_interface_settings()
 
 current_year = datetime.datetime.now().year
 

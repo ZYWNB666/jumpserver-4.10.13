@@ -699,7 +699,7 @@ class Config(dict):
         'APPLET_DOWNLOAD_HOST': '',
 
         # FTP 文件上传下载备份阈值，单位(M)，当值小于等于0时，不备份
-        'FTP_FILE_MAX_STORE': 0,
+        'FTP_FILE_MAX_STORE': 100,  # 启用文件存储，支持100M以内的文件
 
         # API 分页
         'MAX_LIMIT_PER_PAGE': 10000, # 给导出用
