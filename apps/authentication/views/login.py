@@ -290,11 +290,29 @@ class UserLoginGuardView(mixins.AuthMixin, RedirectView):
             self.request.session.set_expiry(age)
 
     def get_redirect_url(self, *args, **kwargs):
+        from common.utils import get_logger
+        logger = get_logger(__name__)
+        
+        # 诊断日志：检查guard view接收到的session状态
+        logger.info(f'=== Guard View Start ===')
+        logger.info(f'Session key: {self.request.session.session_key}')
+        logger.info(f'Session is_empty: {self.request.session.is_empty()}')
+        logger.info(f'Session cookies: {list(self.request.COOKIES.keys())}')
+        logger.info(f'Session data keys: {list(self.request.session.keys())}')
+        logger.info(f'auth_password: {self.request.session.get("auth_password")}')
+        logger.info(f'user_id: {self.request.session.get("user_id")}')
+        logger.info(f'_auth_user_id: {self.request.session.get("_auth_user_id")}')
+        logger.info(f'_auth_user_backend: {self.request.session.get("_auth_user_backend")}')
+        logger.info(f'request.user: {self.request.user}')
+        logger.info(f'request.user.is_authenticated: {self.request.user.is_authenticated if hasattr(self.request.user, "is_authenticated") else "N/A"}')
+        
         try:
             user = self.get_user_from_session()
+            logger.info(f'Got user from session: {user.username}')
             self.check_user_mfa_if_need(user)
             self.check_user_login_confirm_if_need(user)
         except (errors.CredentialError, errors.SessionEmptyError) as e:
+            logger.error(f'Session error in guard view: {type(e).__name__}: {str(e)}')
             return self.format_redirect_url(self.login_url)
         except errors.MFARequiredError:
             return self.format_redirect_url(self.login_mfa_url)

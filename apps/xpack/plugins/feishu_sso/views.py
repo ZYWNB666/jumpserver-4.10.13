@@ -171,6 +171,10 @@ class FeishuSSOCallbackView(AuthMixin, View):
             logger.info(f'Session data: auth_password={request.session.get("auth_password")}, _auth_user_backend={request.session.get("_auth_user_backend")}')
             logger.info(f'Session modified flag: {request.session.modified}')
             
+            # 显式保存session，确保数据持久化到Redis
+            request.session.save()
+            logger.info(f'Session explicitly saved after login')
+            
             logger.info(f'User logged in via Feishu SSO: {user.username}')
             
             # 构建重定向URL
@@ -182,8 +186,9 @@ class FeishuSSOCallbackView(AuthMixin, View):
             logger.info(f'Final redirect to guard view: {guard_url}')
             
             # 返回重定向
-            # SessionMiddleware 会在 process_response 时自动设置 session cookie
-            return redirect(guard_url)
+            response = redirect(guard_url)
+            logger.info(f'Redirect response created, session_key in response: {request.session.session_key}')
+            return response
         else:
             logger.warning('Authentication failed')
             return JsonResponse({
