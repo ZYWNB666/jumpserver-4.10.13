@@ -54,9 +54,6 @@ urlpatterns = [
     path('components/connect-methods/', api.ConnectMethodListApi.as_view(), name='connect-methods'),
     path('loki/logs/', api.LokiLogAPI.as_view(), name='loki-logs'),
     path('encrypted-config/', api.EncryptedTerminalConfig.as_view(), name='encrypted-terminal-config'),
-    # 文件传输中转API - 支持通过对象存储直传，绕过JumpServer服务器流量
-    path('file-transfer/presigned-url/', api.FileTransferPresignedURLAPI.as_view(), name='file-transfer-presigned-url'),
-    path('file-transfer/confirm/', api.FileTransferAPI.as_view(), name='file-transfer-confirm'),
 ]
 
 urlpatterns += router.urls
