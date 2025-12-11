@@ -181,16 +181,20 @@ class EmailRequiredMiddleware:
     """
     邮箱必填中间件
     
-    当用户登录后，如果邮箱是临时邮箱（如 @need-update.local），
+    当用户登录后，如果邮箱不是 @magikcompute.ai 结尾，
     则强制跳转到邮箱填写页面，直到用户填写真实的公司邮箱
+    
+    对于 API 请求，返回 403 错误，让前端无法正常工作
     """
     
-    # 不需要邮箱检查的 URL 路径
+    # 完全豁免的 URL 路径（不检查邮箱）
     EXEMPT_URLS = [
         '/core/auth/login/',
         '/core/auth/logout/',
         '/core/auth/email/required/',
-        '/api/',
+        '/api/v1/authentication/',  # 认证相关 API
+        '/api/v1/settings/public/',  # 公开设置 API
+        '/api/health/',
         '/static/',
         '/media/',
         '/ws/',
@@ -198,6 +202,14 @@ class EmailRequiredMiddleware:
         '/lion/',
         '/chen/',
         '/health/',
+        '/favicon.ico',
+    ]
+    
+    # 需要立即重定向的 URL（首页相关）
+    REDIRECT_URLS = [
+        '/',
+        '/ui/',
+        '/ui',
     ]
     
     def __init__(self, get_response):
@@ -215,8 +227,32 @@ class EmailRequiredMiddleware:
         # 检查用户邮箱是否是临时邮箱
         user = request.user
         if self._is_temp_email(user.email):
-            # 重定向到邮箱填写页面
-            email_required_url = reverse('authentication:email-required')
+            email_required_url = '/core/auth/email/required/'
+            
+            # 对于首页相关的请求，直接重定向
+            if request.path in self.REDIRECT_URLS or request.path.startswith('/ui'):
+                return redirect(email_required_url)
+            
+            # 检查是否是 AJAX 请求
+            is_ajax = (
+                request.headers.get('X-Requested-With') == 'XMLHttpRequest' or
+                'application/json' in request.headers.get('Accept', '') or
+                'application/json' in request.headers.get('Content-Type', '')
+            )
+            
+            if request.path.startswith('/api/'):
+                if is_ajax:
+                    # AJAX 请求返回带自动跳转的 HTML（浏览器会执行）
+                    html = f'''<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<script>alert("请先完善您的公司邮箱");window.location.href="{email_required_url}";</script>
+</head><body>正在跳转...</body></html>'''
+                    return HttpResponse(html, status=200, content_type='text/html; charset=utf-8')
+                else:
+                    # 非 AJAX 的 API 请求，直接重定向
+                    return redirect(email_required_url)
+            
+            # 对于其他页面请求，重定向到邮箱填写页面
             return redirect(email_required_url)
         
         return self.get_response(request)

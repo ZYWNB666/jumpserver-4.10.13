@@ -14,10 +14,13 @@ class FeiShu(BackendBase):
             app_secret=settings.FEISHU_APP_SECRET
         )
 
-    def send_msg(self, users, message, subject=None):
+    def send_msg(self, users, message, subject=None, card=None):
         accounts, __, __ = self.get_accounts(users)
         if not accounts:
             return
+        # 如果提供了卡片内容，使用卡片消息
+        if card:
+            return self.client.send_card(accounts, card)
         return self.client.send_text(accounts, message)
 
 

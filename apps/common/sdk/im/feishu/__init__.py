@@ -140,6 +140,35 @@ class FeiShu(RequestMixin):
                 invalid_users.append(user_id)
         return invalid_users
 
+    def send_card(self, user_ids, card_content):
+        """
+        发送飞书卡片消息
+        https://open.feishu.cn/document/common-capabilities/message-card/overview
+        
+        :param user_ids: 用户ID列表
+        :param card_content: 卡片内容字典，包含 header 和 elements
+        """
+        params = {
+            'receive_id_type': 'user_id'
+        }
+        
+        body = {
+            'msg_type': 'interactive',
+            'content': json.dumps(card_content) if isinstance(card_content, dict) else card_content
+        }
+        
+        invalid_users = []
+        for user_id in user_ids:
+            body['receive_id'] = user_id
+            
+            try:
+                logger.info(f'{self.__class__.__name__} send card: user_ids={user_ids}')
+                self._requests.post(self.url_instance.send_message, params=params, json=body)
+            except APIException as e:
+                logger.exception(e)
+                invalid_users.append(user_id)
+        return invalid_users
+
     @staticmethod
     def clean_phone_number(phone):
         """
