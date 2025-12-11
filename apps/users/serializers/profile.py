@@ -111,6 +111,7 @@ class UserProfileSerializer(UserSerializer):
         email_field = self.fields.get('email')
         if email_field:
             email_field.read_only = False
+            email_field.required = True
             
         if settings.PRIVACY_MODE:
             for field in (
@@ -138,7 +139,12 @@ class UserProfileSerializer(UserSerializer):
 
     def validate_email(self, email):
         """验证邮箱必须是@magikcompute.ai域名"""
-        if email and not email.endswith('@magikcompute.ai'):
+        if not email:
+            raise serializers.ValidationError(_('Email is required'))
+        # 不允许使用临时邮箱
+        if email.endswith('@need-update.local') or email.endswith('@example.com'):
+            raise serializers.ValidationError(_('Please enter your real email address ending with @magikcompute.ai'))
+        if not email.endswith('@magikcompute.ai'):
             raise serializers.ValidationError(_('Email domain must be @magikcompute.ai'))
         return email
 
@@ -158,6 +164,17 @@ class UserProfileSerializer(UserSerializer):
 
     def get_lang(self, obj) -> str:
         return getattr(obj, 'lang') or settings.LANGUAGE_CODE
+
+    def to_representation(self, instance):
+        """
+        自定义序列化输出，将临时邮箱显示为空字符串
+        """
+        data = super().to_representation(instance)
+        email = data.get('email', '')
+        # 如果是临时邮箱，显示为空，让用户填写真实邮箱
+        if email and (email.endswith('@need-update.local') or email.endswith('@example.com')):
+            data['email'] = ''
+        return data
 
 
 class UserPKUpdateSerializer(serializers.ModelSerializer):

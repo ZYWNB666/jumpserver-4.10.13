@@ -175,3 +175,64 @@ class SafeRedirectMiddleware:
             host, port = netloc.split(':', 1)
             return host, port
         return netloc, '80'
+
+
+class EmailRequiredMiddleware:
+    """
+    邮箱必填中间件
+    
+    当用户登录后，如果邮箱是临时邮箱（如 @need-update.local），
+    则强制跳转到邮箱填写页面，直到用户填写真实的公司邮箱
+    """
+    
+    # 不需要邮箱检查的 URL 路径
+    EXEMPT_URLS = [
+        '/core/auth/login/',
+        '/core/auth/logout/',
+        '/core/auth/email/required/',
+        '/api/',
+        '/static/',
+        '/media/',
+        '/ws/',
+        '/koko/',
+        '/lion/',
+        '/chen/',
+        '/health/',
+    ]
+    
+    def __init__(self, get_response):
+        self.get_response = get_response
+    
+    def __call__(self, request):
+        # 检查是否需要跳过
+        if self._should_skip(request):
+            return self.get_response(request)
+        
+        # 检查用户是否已登录
+        if not hasattr(request, 'user') or not request.user.is_authenticated:
+            return self.get_response(request)
+        
+        # 检查用户邮箱是否是临时邮箱
+        user = request.user
+        if self._is_temp_email(user.email):
+            # 重定向到邮箱填写页面
+            email_required_url = reverse('authentication:email-required')
+            return redirect(email_required_url)
+        
+        return self.get_response(request)
+    
+    def _should_skip(self, request):
+        """检查是否应该跳过邮箱检查"""
+        path = request.path
+        for exempt_url in self.EXEMPT_URLS:
+            if path.startswith(exempt_url):
+                return True
+        return False
+    
+    @staticmethod
+    def _is_temp_email(email):
+        """检查是否是临时邮箱，需要用户填写真实的 @magikcompute.ai 邮箱"""
+        if not email:
+            return True
+        # 只有 @magikcompute.ai 结尾的邮箱才是有效的，其他都需要重新填写
+        return not email.endswith('@magikcompute.ai')

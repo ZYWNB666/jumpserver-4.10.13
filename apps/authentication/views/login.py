@@ -334,10 +334,23 @@ class UserLoginGuardView(mixins.AuthMixin, RedirectView):
             self.login_it(user)
             self.send_auth_signal(success=True, user=user)
             self.clear_auth_mark()
+            
+            # 检查用户邮箱是否是临时邮箱，如果是则跳转到邮箱填写页面
+            if self._is_temp_email(user.email):
+                return reverse('authentication:email-required')
+            
             url = redirect_user_first_login_or_index(
                 self.request, self.redirect_field_name
             )
             return url
+    
+    @staticmethod
+    def _is_temp_email(email):
+        """检查是否是临时邮箱，需要用户填写真实的 @magikcompute.ai 邮箱"""
+        if not email:
+            return True
+        # 只有 @magikcompute.ai 结尾的邮箱才是有效的，其他都需要重新填写
+        return not email.endswith('@magikcompute.ai')
 
     def get(self, request, *args, **kwargs):
         from django.utils import timezone

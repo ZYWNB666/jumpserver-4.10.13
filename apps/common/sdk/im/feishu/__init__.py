@@ -141,13 +141,34 @@ class FeiShu(RequestMixin):
         return invalid_users
 
     @staticmethod
+    def clean_phone_number(phone):
+        """
+        清理手机号，去掉国际区号前缀
+        如 +86 13800138000 -> 13800138000
+        """
+        if not phone:
+            return phone
+        # 去掉 +86 前缀
+        if phone.startswith('+86'):
+            phone = phone[3:]
+        # 去掉可能的空格和横线
+        phone = phone.replace(' ', '').replace('-', '')
+        return phone
+
+    @staticmethod
     def default_user_detail(data, user_id):
+        import uuid
         username = data.get('user_id', user_id)
         name = data.get('name', username)
+        # 飞书用户可能没有企业邮箱，使用临时占位邮箱，用户登录后需要自己填写真实邮箱
         email = data.get('email') or data.get('enterprise_email')
-        email = construct_user_email(username, email)
+        if not email:
+            # 生成唯一的临时邮箱，用户必须在个人信息完善页面修改为真实邮箱
+            email = f'{username}_{uuid.uuid4().hex[:8]}@need-update.local'
+        # 获取手机号
+        mobile = data.get('mobile', '')
         return {
-            'username': username, 'name': name, 'email': email
+            'username': username, 'name': name, 'email': email, 'phone': mobile
         }
 
     def get_user_detail(self, user_id, **kwargs):
@@ -166,4 +187,15 @@ class FeiShu(RequestMixin):
         info = flatten_dict(data)
         default_detail = self.default_user_detail(data, user_id)
         detail = map_attributes(default_detail, info, self.attributes)
+        
+        # 清理用户名中的 +86 前缀（如果用户名是手机号格式）
+        if 'username' in detail:
+            username = detail['username']
+            if username and (username.startswith('+86') or username.startswith('+1')):
+                detail['username'] = self.clean_phone_number(username)
+        
+        # 清理手机号中的 +86 前缀
+        if 'phone' in detail:
+            detail['phone'] = self.clean_phone_number(detail.get('phone', ''))
+        
         return detail

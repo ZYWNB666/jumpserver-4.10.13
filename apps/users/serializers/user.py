@@ -338,6 +338,17 @@ class UserSerializer(
             attrs.pop(field, None)
         return attrs
 
+    def validate_email(self, email):
+        """验证邮箱必须以 @magikcompute.ai 结尾"""
+        if not email:
+            raise serializers.ValidationError(_('Email is required'))
+        # 不允许使用临时邮箱
+        if email.endswith('@need-update.local') or email.endswith('@example.com'):
+            raise serializers.ValidationError(_('Please enter your real email address ending with @magikcompute.ai'))
+        if not email.endswith('@magikcompute.ai'):
+            raise serializers.ValidationError(_('Email domain must be @magikcompute.ai'))
+        return email
+
     def validate(self, attrs):
         attrs = self.check_disallow_self_update_fields(attrs)
         attrs = self.change_password_to_raw(attrs)

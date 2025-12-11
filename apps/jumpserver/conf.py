@@ -465,8 +465,9 @@ class Config(dict):
         'FEISHU_APP_SECRET': '',
         'FEISHU_RENAME_ATTRIBUTES': {
             'name': 'name',
-            'username': 'user_id',
-            'email': 'enterprise_email'
+            'username': 'mobile',
+            'email': 'enterprise_email',
+            'phone': 'mobile'
         },
         'FEISHU_ORG_IDS': [DEFAULT_ID],
 

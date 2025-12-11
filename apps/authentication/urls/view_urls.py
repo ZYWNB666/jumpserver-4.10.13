@@ -17,6 +17,9 @@ urlpatterns = [
     path('login/mfa/face/capture/', views.UserLoginMFAFaceView.as_view(), name='login-face-capture'),
     path('login/guard/', views.UserLoginGuardView.as_view(), name='login-guard'),
     path('logout/', views.UserLogoutView.as_view(), name='logout'),
+    
+    # 邮箱填写页面（飞书登录用户必须填写公司邮箱）
+    path('email/required/', views.EmailRequiredView.as_view(), name='email-required'),
 
     # 原来在users中的
     path('password/forget/previewing/', users_view.UserForgotPasswordPreviewingView.as_view(),
