@@ -70,7 +70,8 @@
 
         .login-content {
             height: 500px;
-            width: 1000px;
+            width: 100%;
+            max-width: 500px;
             margin-top: auto;
             margin-bottom: auto;
         }
@@ -94,18 +95,15 @@
             float: right;
         }
 
-        .right-image-box {
-            height: 100%;
-            width: 50%;
-            float: right;
-        }
-
         .left-form-box {
             text-align: center;
             background-color: white;
             height: 100%;
-            width: 50%;
-            border-right: 1px solid #EFF0F1;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
         }
 
         .left-form-box .form-panel {
@@ -267,15 +265,14 @@
 
             .login-content {
                 width: 100%;
+                max-width: 100%;
             }
 
             .left-form-box {
                 width: 100%;
-                border-right: none;
-            }
-
-            .right-image-box {
-                display: none;
+                max-width: 100%;
+                border-radius: 0;
+                box-shadow: none;
             }
 
             .navbar-top-links {
@@ -287,11 +284,6 @@
                 display: block;
                 padding: 0 45px;
                 text-align: left;
-            }
-
-            .right-image {
-                height: revert;
-                width: revert;
             }
 
             .left-form-box .form-panel {
@@ -315,11 +307,6 @@
     </div>
 {% endif %}
 <div class="login-content extra-fields-{{ extra_fields_count }}">
-    <div class="right-image-box">
-        <a href="{% if not XPACK_ENABLED %}https://github.com/jumpserver/jumpserver.git{% endif %}">
-            <img src="{{ INTERFACE.login_image }}" class="right-image" alt="screen-image"/>
-        </a>
-    </div>
     <div class="left-form-box {% if not form.challenge and not form.captcha %} no-captcha-challenge {% endif %}">
         <div class="mobile-logo" style="padding-bottom: 45px; box-sizing: border-box">
             <div class="jms-title">
