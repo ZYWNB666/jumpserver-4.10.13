@@ -65,9 +65,9 @@ i18n:
     en: 'Use commas to separate multiple commands, such as: /bin/whoami,/sbin/ifconfig'
 
   Params home help text:
-    zh: '默认家目录 /home/{账号用户名}'
-    ja: 'デフォルトのホームディレクトリ /home/{アカウントユーザ名}'
-    en: 'Default home directory /home/{account username}'
+    zh: '默认家目录 /data/home/{账号用户名}'
+    ja: 'デフォルトのホームディレクトリ /data/home/{アカウントユーザ名}'
+    en: 'Default home directory /data/home/{account username}'
 
   Params group help text:
     zh: '请输入用户组（名字或数字），只能输入一个（需填写已存在的用户组）'
