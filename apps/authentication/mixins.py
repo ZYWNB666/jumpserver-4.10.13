@@ -69,7 +69,9 @@ def authenticate(request=None, **credentials):
 
     def custom_get_or_create(self, *args, **kwargs):
         logger.debug(f"get_or_create: thread_id={threading.get_ident()}, username={username}")
-        if threading.get_ident() != thread_local.thread_id or not settings.ONLY_ALLOW_EXIST_USER_AUTH:
+        # 安全地检查 thread_id 属性是否存在
+        current_thread_id = getattr(thread_local, 'thread_id', None)
+        if current_thread_id is None or threading.get_ident() != current_thread_id or not settings.ONLY_ALLOW_EXIST_USER_AUTH:
             return original_get_or_create(*args, **kwargs)
         create_username = kwargs.get('username')
         try:
