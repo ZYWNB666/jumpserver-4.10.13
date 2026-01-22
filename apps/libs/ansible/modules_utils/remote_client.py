@@ -15,6 +15,14 @@ SU_PROMPT_LOCALIZATIONS = [
     'गुप्तशब्द', 'शब्दकूट', 'సంకేతపదము', 'හස්පදය', '密码', '密碼', '口令',
 ]
 
+# Supported SSH key types for paramiko
+_supported_paramiko_ssh_key_types = (
+    paramiko.RSAKey,
+    paramiko.Ed25519Key,
+    paramiko.ECDSAKey,
+    paramiko.DSSKey,
+)
+
 
 def get_become_prompt_re():
     pattern_segments = (r'(\w+\'s )?' + p for p in SU_PROMPT_LOCALIZATIONS)
@@ -272,13 +280,27 @@ class SSHClient:
 
         password, port, username, remote_addr, key_path = match.groups()
         password = password or None
-        key_path = key_path or None
+        
+        # Load SSH key if key_path is provided
+        ssh_pkey = None
+        if key_path:
+            try:
+                # Try different key types
+                for key_class in _supported_paramiko_ssh_key_types:
+                    try:
+                        ssh_pkey = key_class.from_private_key_file(key_path)
+                        break
+                    except paramiko.SSHException:
+                        continue
+            except Exception:  # noqa
+                # If key loading fails, log and continue with password auth
+                pass
 
         server = SSHTunnelForwarder(
             (remote_addr, int(port)),
             ssh_username=username,
             ssh_password=password,
-            ssh_pkey=key_path,
+            ssh_pkey=ssh_pkey,
             remote_bind_address=(
                 self.module.params['login_host'],
                 self.module.params['login_port']
